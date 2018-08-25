@@ -4,11 +4,22 @@ import './App.css';
 import testMComponent from './testMComponent'
 
 import meiosisTracer from "meiosis-tracer";
+import flyd from 'flyd'
 
 const componentA = new testMComponent()
 const componentB = new testMComponent({click:55})
 
-meiosisTracer({ selector: "#tracer", streams: [ componentA.listener, componentB.listener ] });
+const mixUpdate = flyd.merge(componentA.update, componentB.update)
+
+const mixListener = flyd.scan((o, n) => { return {
+  a: componentA.listener(),
+  b: componentB.listener()
+} }, {
+  a: componentA.listener(),
+  b: componentB.listener()
+}, mixUpdate)
+
+meiosisTracer({ selector: "#tracer", streams: [ mixListener, componentA.listener ] });
 
 class App extends Component {
   constructor(props) {
@@ -28,12 +39,13 @@ class App extends Component {
   componentDidMount() {
     const self = this;
 
-    componentA.listener.map(model => {
-      self.setState({ a: model });
-    });
-    componentB.listener.map(model => {
-      self.setState({ b: model });
-    });
+    mixListener.map( model => self.setState({model}) )
+    // componentA.listener.map(model => {
+    //   self.setState({ a: model });
+    // });
+    // componentB.listener.map(model => {
+    //   self.setState({ b: model });
+    // });
   }
 
   render() {
